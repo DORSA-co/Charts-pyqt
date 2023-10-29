@@ -1,6 +1,6 @@
 from typing import Optional
 from PySide6.QtCore import QMargins, QPoint, Qt
-from PySide6.QtGui import QPainter, QColor, QFont
+from PySide6.QtGui import QPainter, QColor, QFont, QPen
 from PySide6 import QtCharts
 
 class Font:
@@ -56,10 +56,11 @@ class Trend(QtCharts.QLineSeries):
 
     def add_data(self, axisX_values, axisY_values):
         assert len(axisX_values)==len(axisY_values)
-        for x, y in zip(axisX_values, axisY_values):
+        self.axisX_values = axisX_values
+        for x, y in zip(range(len(axisX_values)), axisY_values):
             self.append(QPoint(x, y))
 
-class LineChart(QtCharts.QChartView):
+class CategoricalLineChart(QtCharts.QChartView):
     def __init__(self, 
                 parent=None,
                 chart_title: str = None,
@@ -79,7 +80,6 @@ class LineChart(QtCharts.QChartView):
                 axisY_grid_color: str = None,
                 axisX_range: tuple = None,
                 axisY_range: tuple = None,
-                axisX_tickCount: str = 5,
                 axisY_tickCount: str = 5,
                 animation: bool = True,
                 ):
@@ -118,7 +118,6 @@ class LineChart(QtCharts.QChartView):
         self.set_axisX_range(axisX_range)
         self.set_axisY_range(axisY_range)
 
-        self.set_axisX_tickCount(axisX_tickCount)
         self.set_axisY_tickCount(axisY_tickCount)
 
         self.set_animation(animation)
@@ -155,7 +154,7 @@ class LineChart(QtCharts.QChartView):
              self.chart.legend().setAlignment(Qt.AlignRight)
 
     def __set_axis(self):
-        self.axisX = QtCharts.QValueAxis()
+        self.axisX = QtCharts.QCategoryAxis()
         self.chart.addAxis(self.axisX, Qt.AlignBottom)
 
         self.axisY = QtCharts.QValueAxis()
@@ -208,15 +207,16 @@ class LineChart(QtCharts.QChartView):
         if self.axisX_range and hasattr(self, 'axisX'):
             self.axisX.setRange(*self.axisX_range)
 
+    def set_axisX_categories(self, categories):
+        self.axisX.setLabelsPosition(QtCharts.QCategoryAxis.AxisLabelsPositionOnValue)
+        self.axisX.setStartValue(0)
+        for i, r in enumerate(categories):
+            self.axisX.append(r, i)
+
     def set_axisY_range(self, range):
         self.axisY_range = range
         if self.axisY_range and hasattr(self, 'axisY'):
             self.axisY.setRange(*self.axisY_range)
-
-    def set_axisX_tickCount(self, tickCount):
-        self.axisX_tickCount = tickCount
-        if self.axisX_tickCount and hasattr(self, 'axisX'):
-            self.axisX.setTickCount(self.axisX_tickCount)
 
     def set_axisY_tickCount(self, tickCount):
         self.axisY_tickCount = tickCount
@@ -231,6 +231,7 @@ class LineChart(QtCharts.QChartView):
 
     def add_trend(self, series):
         self.chart.addSeries(series)
+        self.set_axisX_categories(series.axisX_values)
         series.attachAxis(self.axisX)
         series.attachAxis(self.axisY)
 
